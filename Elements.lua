@@ -1,4 +1,4 @@
-local BaseURL = getgenv().UI_Base_URL or "https://raw.githubusercontent.com/YourUser/YourRepo/main/CustomUI/"
+local BaseURL = getgenv().UI_Base_URL or "https://raw.githubusercontent.com/bad-tr1p1/UIcult-Library/refs/heads/main/"
 
 local Theme = loadstring(game:HttpGet(BaseURL .. "Theme.lua"))()
 local Utils = loadstring(game:HttpGet(BaseURL .. "Utils.lua"))()
