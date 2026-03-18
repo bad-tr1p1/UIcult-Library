@@ -9,7 +9,7 @@
 ---
 
 ### | Новое в версии 1.3.0
-*   **Menu Animations**: 3 уникальных режима (Standard, Slide, Elastic). Настраивается в меню.
+*   **Menu Animations**: 3 режима (Standard, Slide, Elastic). Настраивается в меню.
 *   **Default Theme**: Основная тема переключена на `Elum`.
 *   **Auto-Balance**: Умное распределение GroupBox между колонками.
 *   **Neon Headers**: Левое выравнивание заголовков с двойным слоем свечения.
