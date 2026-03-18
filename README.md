@@ -3,6 +3,7 @@
 ![Header Image](https://raw.githubusercontent.com/bad-tr1p1/UIcult-Library/main/pentagram.png)
 
 Премиальный интерфейс для Roblox Lua скриптов. Высокая производительность, чистый код и современный дизайн.
+
 **ЗАТОЧЕНО ДЛЯ СОЗДАНИЯ ЧИТ-ПРОЕКТОВ""
 
 ---
