@@ -5,13 +5,16 @@ local Utils = loadstring(game:HttpGet(BaseURL .. "Utils.lua"))()
 
 local Library = {
     AccentUpdate = {},
+    NeonUpdate = {},
     ScreenGui = nil,
     Toggled = true,
     Config = {
         Title = "UI Library",
         Center = true,
         AutoShow = true,
-        TabPadding = 8
+        TabPadding = 8,
+        AutoBalance = true,
+        NeonEnabled = true
     }
 }
 getgenv().LinoriaLib = Library
@@ -35,6 +38,13 @@ end)
 function Library:UpdateAccent(color)
     for _, callback in pairs(self.AccentUpdate) do
         pcall(callback, color)
+    end
+end
+
+function Library:SetNeonVisibility(bool)
+    self.Config.NeonEnabled = bool
+    for _, callback in pairs(self.NeonUpdate) do
+        pcall(callback, bool)
     end
 end
 
@@ -165,117 +175,6 @@ function Library:CreateWindow(config)
     local FirstTab = true
     local TabCount = 0
 
-    local function AddSettingsTab(tabObj)
-        local SettingsTab = tabObj:CreateTab("Settings", true)
-        
-        local ThemeGroup = SettingsTab.Left:AddGroupBox("UI Appearance")
-        ThemeGroup:AddDropdown("Theme Color", {"Chaos", "Pur", "Elum"}, "Pur", function(name)
-            Library:UpdateAccent(Theme.Themes[name])
-        end)
-        
-        local MenuSettings = SettingsTab.Right:AddGroupBox("Menu Settings")
-        MenuSettings:AddToggle("Watermark Enabled", true, function(v)
-            Library:SetWatermarkVisibility(v)
-        end)
-    end
-
-    function Tabs:CreateTab(name, isSettings)
-        local layoutOrder = isSettings and 9999 or (TabCount + 1)
-        if not isSettings then TabCount = TabCount + 1 end
-
-        local isDefault = false
-        if not isSettings and FirstTab then
-            isDefault = true
-            FirstTab = false
-        end
-
-        local TabButton = Utils:Create("TextButton", {
-            Name = name .. "_Tab",
-            Parent = TabList,
-            Size = UDim2.new(0, 0, 1, 0),
-            BackgroundColor3 = isDefault and Theme.Default.MainColor or Theme.Default.DarkBorder,
-            BorderSizePixel = 0,
-            Text = name,
-            TextColor3 = isDefault and Theme.Default.TextColor or Theme.Default.TextDark,
-            Font = Theme.Default.Font,
-            TextSize = Theme.Default.FontSize,
-            AutomaticSize = Enum.AutomaticSize.X,
-            LayoutOrder = layoutOrder
-        })
-        
-        Utils:Create("UIPadding", {Parent = TabButton, PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
-
-        local TabContent = Utils:Create("ScrollingFrame", {
-            Name = name .. "_Content",
-            Parent = ContentFrame,
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundTransparency = 1,
-            Visible = isDefault,
-            ScrollBarThickness = 1,
-            CanvasSize = UDim2.new(0, 0, 0, 0),
-            BorderSizePixel = 0,
-            AutomaticCanvasSize = Enum.AutomaticSize.Y
-        })
-
-        local LeftColumn = Utils:Create("Frame", {
-            Parent = TabContent,
-            Size = UDim2.new(0.5, -7, 1, 0),
-            Position = UDim2.new(0, 5, 0, 10),
-            BackgroundTransparency = 1
-        }, {
-            Utils:Create("UIListLayout", {Padding = UDim.new(0, 12), HorizontalAlignment = Enum.HorizontalAlignment.Center})
-        })
-
-        local RightColumn = Utils:Create("Frame", {
-            Parent = TabContent,
-            Size = UDim2.new(0.5, -7, 1, 0),
-            Position = UDim2.new(0.5, 2, 0, 10),
-            BackgroundTransparency = 1
-        }, {
-            Utils:Create("UIListLayout", {Padding = UDim.new(0, 12), HorizontalAlignment = Enum.HorizontalAlignment.Center})
-        })
-
-        LeftColumn.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            TabContent.CanvasSize = UDim2.new(0, 0, 0, math.max(LeftColumn.UIListLayout.AbsoluteContentSize.Y, RightColumn.UIListLayout.AbsoluteContentSize.Y) + 30)
-        end)
-        RightColumn.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            TabContent.CanvasSize = UDim2.new(0, 0, 0, math.max(LeftColumn.UIListLayout.AbsoluteContentSize.Y, RightColumn.UIListLayout.AbsoluteContentSize.Y) + 30)
-        end)
-
-        local Indicator = Utils:Create("Frame", {
-            Parent = TabButton,
-            Size = UDim2.new(1, 0, 0, 2),
-            BackgroundColor3 = Theme.Default.AccentColor,
-            BorderSizePixel = 0,
-            Visible = isDefault
-        })
-
-        table.insert(Library.AccentUpdate, function(newColor)
-            Indicator.BackgroundColor3 = newColor
-        end)
-
-        TabButton.MouseButton1Click:Connect(function()
-            for _, child in pairs(ContentFrame:GetChildren()) do
-                if child:IsA("ScrollingFrame") then child.Visible = false end
-            end
-            for _, child in pairs(TabList:GetChildren()) do
-                if child:IsA("TextButton") then
-                    child.BackgroundColor3 = Theme.Default.DarkBorder
-                    child.TextColor3 = Theme.Default.TextDark
-                    if child:FindFirstChild("Frame") then child.Frame.Visible = false end
-                end
-            end
-            TabContent.Visible = true
-            TabButton.BackgroundColor3 = Theme.Default.MainColor
-            TabButton.TextColor3 = Theme.Default.TextColor
-            Indicator.Visible = true
-        end)
-
-        local TabMethods = {
-            Left = {},
-            Right = {}
-        }
-
         local function CreateColumnMethods(columnFrame)
             local methods = {}
             function methods:AddGroupBox(label)
@@ -348,6 +247,14 @@ function Library:CreateWindow(config)
                     OuterGlowStroke.Color = newColor
                 end)
 
+                local function UpdateNeon(enabled)
+                    InnerGlow.Enabled = enabled
+                    OuterGlowLabel.Visible = enabled
+                end
+
+                table.insert(Library.NeonUpdate, UpdateNeon)
+                UpdateNeon(Library.Config.NeonEnabled)
+
                 Utils:Create("UIListLayout", {
                     Parent = GroupBox,
                     Padding = UDim.new(0, 6),
@@ -375,12 +282,135 @@ function Library:CreateWindow(config)
             return methods
         end
 
-        TabMethods.Left = CreateColumnMethods(LeftColumn)
-        TabMethods.Right = CreateColumnMethods(RightColumn)
-        
-        function TabMethods:AddGroupBox(...) return self.Left:AddGroupBox(...) end
+        function Tabs:CreateTab(name, isSettings)
+            local layoutOrder = isSettings and 9999 or (TabCount + 1)
+            if not isSettings then TabCount = TabCount + 1 end
 
-        return TabMethods
+            local isDefault = false
+            if not isSettings and FirstTab then
+                isDefault = true
+                FirstTab = false
+            end
+
+            local TabButton = Utils:Create("TextButton", {
+                Name = name .. "_Tab",
+                Parent = TabList,
+                Size = UDim2.new(0, 0, 1, 0),
+                BackgroundColor3 = isDefault and Theme.Default.MainColor or Theme.Default.DarkBorder,
+                BorderSizePixel = 0,
+                Text = name,
+                TextColor3 = isDefault and Theme.Default.TextColor or Theme.Default.TextDark,
+                Font = Theme.Default.Font,
+                TextSize = Theme.Default.FontSize,
+                AutomaticSize = Enum.AutomaticSize.X,
+                LayoutOrder = layoutOrder
+            })
+            
+            Utils:Create("UIPadding", {Parent = TabButton, PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12)})
+
+            local TabContent = Utils:Create("ScrollingFrame", {
+                Name = name .. "_Content",
+                Parent = ContentFrame,
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Visible = isDefault,
+                ScrollBarThickness = 1,
+                CanvasSize = UDim2.new(0, 0, 0, 0),
+                BorderSizePixel = 0,
+                AutomaticCanvasSize = Enum.AutomaticSize.Y
+            })
+
+            local LeftColumn = Utils:Create("Frame", {
+                Parent = TabContent,
+                Size = UDim2.new(0.5, -7, 1, 0),
+                Position = UDim2.new(0, 5, 0, 10),
+                BackgroundTransparency = 1
+            }, {
+                Utils:Create("UIListLayout", {Padding = UDim.new(0, 12), HorizontalAlignment = Enum.HorizontalAlignment.Center})
+            })
+
+            local RightColumn = Utils:Create("Frame", {
+                Parent = TabContent,
+                Size = UDim2.new(0.5, -7, 1, 0),
+                Position = UDim2.new(0.5, 2, 0, 10),
+                BackgroundTransparency = 1
+            }, {
+                Utils:Create("UIListLayout", {Padding = UDim.new(0, 12), HorizontalAlignment = Enum.HorizontalAlignment.Center})
+            })
+
+            LeftColumn.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                TabContent.CanvasSize = UDim2.new(0, 0, 0, math.max(LeftColumn.UIListLayout.AbsoluteContentSize.Y, RightColumn.UIListLayout.AbsoluteContentSize.Y) + 30)
+            end)
+            RightColumn.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                TabContent.CanvasSize = UDim2.new(0, 0, 0, math.max(LeftColumn.UIListLayout.AbsoluteContentSize.Y, RightColumn.UIListLayout.AbsoluteContentSize.Y) + 30)
+            end)
+
+            local Indicator = Utils:Create("Frame", {
+                Parent = TabButton,
+                Size = UDim2.new(1, 0, 0, 2),
+                BackgroundColor3 = Theme.Default.AccentColor,
+                BorderSizePixel = 0,
+                Visible = isDefault
+            })
+
+            table.insert(Library.AccentUpdate, function(newColor)
+                Indicator.BackgroundColor3 = newColor
+            end)
+
+            TabButton.MouseButton1Click:Connect(function()
+                for _, child in pairs(ContentFrame:GetChildren()) do
+                    if child:IsA("ScrollingFrame") then child.Visible = false end
+                end
+                for _, child in pairs(TabList:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        child.BackgroundColor3 = Theme.Default.DarkBorder
+                        child.TextColor3 = Theme.Default.TextDark
+                        if child:FindFirstChild("Frame") then child.Frame.Visible = false end
+                    end
+                end
+                TabContent.Visible = true
+                TabButton.BackgroundColor3 = Theme.Default.MainColor
+                TabButton.TextColor3 = Theme.Default.TextColor
+                Indicator.Visible = true
+            end)
+
+            local TabMethods = {
+                Left = CreateColumnMethods(LeftColumn),
+                Right = CreateColumnMethods(RightColumn)
+            }
+
+            function TabMethods:AddGroupBox(label)
+                if Library.Config.AutoBalance then
+                    local leftSize = LeftColumn.UIListLayout.AbsoluteContentSize.Y
+                    local rightSize = RightColumn.UIListLayout.AbsoluteContentSize.Y
+                    
+                    if leftSize <= rightSize then
+                        return self.Left:AddGroupBox(label)
+                    else
+                        return self.Right:AddGroupBox(label)
+                    end
+                end
+                return self.Left:AddGroupBox(label)
+            end
+
+            return TabMethods
+        end
+
+    local function AddSettingsTab(tabObj)
+        local SettingsTab = tabObj:CreateTab("Settings", true)
+        
+        local ThemeGroup = SettingsTab.Left:AddGroupBox("UI Appearance")
+        ThemeGroup:AddDropdown("Theme Color", {"Chaos", "Pur", "Elum"}, "Pur", function(name)
+            Library:UpdateAccent(Theme.Themes[name])
+        end)
+        
+        local MenuSettings = SettingsTab.Right:AddGroupBox("Menu Settings")
+        MenuSettings:AddToggle("Watermark Enabled", true, function(v)
+            Library:SetWatermarkVisibility(v)
+        end)
+        MenuSettings:AddToggle("Neon Glow", true, function(v)
+            Library:SetNeonVisibility(v)
+        end)
     end
 
     AddSettingsTab(Tabs)
