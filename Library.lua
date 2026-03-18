@@ -14,7 +14,8 @@ local Library = {
         AutoShow = true,
         TabPadding = 8,
         AutoBalance = true,
-        NeonEnabled = true
+        NeonEnabled = true,
+        AnimationType = "Standard"
     }
 }
 getgenv().LinoriaLib = Library
@@ -23,8 +24,41 @@ local UserInputService = game:GetService("UserInputService")
 
 function Library:SetOpen(bool)
     self.Toggled = bool
+    local animType = self.Config.AnimationType
+    
     if self.ScreenGui then
-        self.ScreenGui.Enabled = bool
+        if bool then
+            self.ScreenGui.Enabled = true
+            
+            if animType == "Standard" then
+                Library.UIScale.Scale = 0
+                Utils:Tween(Library.UIScale, 0.4, {Scale = 1}, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+            elseif animType == "Slide" then
+                Library.OuterBorder.Position = UDim2.new(Library.OriginalPosition.X.Scale, Library.OriginalPosition.X.Offset, 1.5, 0)
+                Utils:Tween(Library.OuterBorder, 0.5, {Position = Library.OriginalPosition}, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+                Library.UIScale.Scale = 1
+            elseif animType == "Elastic" then
+                Library.OuterBorder.Position = UDim2.new(Library.OriginalPosition.X.Scale, Library.OriginalPosition.X.Offset, -1.5, 0)
+                Utils:Tween(Library.OuterBorder, 0.8, {Position = Library.OriginalPosition}, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
+                Library.UIScale.Scale = 1
+            end
+        else
+            task.spawn(function()
+                local duration = 0.4
+                if animType == "Standard" then
+                    Utils:Tween(Library.UIScale, duration, {Scale = 0}, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+                elseif animType == "Slide" then
+                    Utils:Tween(Library.OuterBorder, duration, {Position = UDim2.new(Library.OuterBorder.Position.X.Scale, Library.OuterBorder.Position.X.Offset, 1.5, 0)}, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+                elseif animType == "Elastic" then
+                    Utils:Tween(Library.OuterBorder, duration, {Position = UDim2.new(Library.OuterBorder.Position.X.Scale, Library.OuterBorder.Position.X.Offset, -1.5, 0)}, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+                end
+                
+                task.wait(duration)
+                if not self.Toggled then
+                    self.ScreenGui.Enabled = false
+                end
+            end)
+        end
     end
 end
 
@@ -72,6 +106,13 @@ function Library:CreateWindow(config)
         Position = self.Config.Center and UDim2.new(0.5, -250, 0.5, -310) or UDim2.new(0, 50, 0, 50),
         Size = UDim2.new(0, 500, 0, 620),
         BorderSizePixel = 0
+    })
+    Library.OuterBorder = OuterBorder
+    Library.OriginalPosition = OuterBorder.Position
+
+    Library.UIScale = Utils:Create("UIScale", {
+        Parent = OuterBorder,
+        Scale = self.Config.AutoShow and 1 or 0
     })
 
     local AccentBorder = Utils:Create("Frame", {
@@ -211,10 +252,15 @@ function Library:CreateWindow(config)
                     RichText = true
                 })
 
+                local lastAccent = Theme.Default.AccentColor
+                local function GetNeonTextColor(color)
+                    return Color3.fromRGB(255, 250, 250):Lerp(color, 0.2)
+                end
+
                 local InnerGlow = Utils:Create("UIStroke", {
                     Parent = TitleLabel,
-                    Color = Theme.Default.AccentColor,
-                    Thickness = 1.0,
+                    Color = lastAccent,
+                    Thickness = 0.6,
                     Transparency = 0
                 })
 
@@ -224,7 +270,7 @@ function Library:CreateWindow(config)
                     Size = UDim2.new(1, 0, 1, 0),
                     Position = UDim2.new(0, 0, 0, 0),
                     BackgroundTransparency = 1,
-                    TextColor3 = Theme.Default.AccentColor,
+                    TextColor3 = lastAccent,
                     Font = TitleLabel.Font,
                     TextSize = TitleLabel.TextSize,
                     TextXAlignment = TitleLabel.TextXAlignment,
@@ -234,14 +280,16 @@ function Library:CreateWindow(config)
 
                 local OuterGlowStroke = Utils:Create("UIStroke", {
                     Parent = OuterGlowLabel,
-                    Color = Theme.Default.AccentColor,
-                    Thickness = 4.5,
-                    Transparency = 0.75
+                    Color = lastAccent,
+                    Thickness = 1.6,
+                    Transparency = 0.82
                 })
 
                 table.insert(Library.AccentUpdate, function(newColor)
-                    local newLight = Color3.fromRGB(255, 250, 250):Lerp(newColor, 0.2)
-                    TitleLabel.TextColor3 = newLight
+                    lastAccent = newColor
+                    if Library.Config.NeonEnabled then
+                        TitleLabel.TextColor3 = GetNeonTextColor(newColor)
+                    end
                     InnerGlow.Color = newColor
                     OuterGlowLabel.TextColor3 = newColor
                     OuterGlowStroke.Color = newColor
@@ -250,6 +298,7 @@ function Library:CreateWindow(config)
                 local function UpdateNeon(enabled)
                     InnerGlow.Enabled = enabled
                     OuterGlowLabel.Visible = enabled
+                    TitleLabel.TextColor3 = enabled and GetNeonTextColor(lastAccent) or Theme.Default.TextColor
                 end
 
                 table.insert(Library.NeonUpdate, UpdateNeon)
@@ -400,7 +449,7 @@ function Library:CreateWindow(config)
         local SettingsTab = tabObj:CreateTab("Settings", true)
         
         local ThemeGroup = SettingsTab.Left:AddGroupBox("UI Appearance")
-        ThemeGroup:AddDropdown("Theme Color", {"Chaos", "Pur", "Elum"}, "Pur", function(name)
+        ThemeGroup:AddDropdown("Theme Color", {"Chaos", "Pur", "Elum"}, "Elum", function(name)
             Library:UpdateAccent(Theme.Themes[name])
         end)
         
@@ -410,6 +459,9 @@ function Library:CreateWindow(config)
         end)
         MenuSettings:AddToggle("Neon Glow", true, function(v)
             Library:SetNeonVisibility(v)
+        end)
+        MenuSettings:AddDropdown("Open Animation", {"Standard", "Slide", "Elastic"}, "Standard", function(v)
+            Library.Config.AnimationType = v
         end)
     end
 
