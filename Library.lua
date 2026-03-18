@@ -169,7 +169,7 @@ function Library:CreateWindow(config)
         local SettingsTab = tabObj:CreateTab("Settings", true)
         
         local ThemeGroup = SettingsTab.Left:AddGroupBox("UI Appearance")
-        ThemeGroup:AddDropdown("Theme Color", {"Chaos", "Pur", "Elum"}, "Chaos", function(name)
+        ThemeGroup:AddDropdown("Theme Color", {"Chaos", "Pur", "Elum"}, "Pur", function(name)
             Library:UpdateAccent(Theme.Themes[name])
         end)
         
@@ -292,25 +292,73 @@ function Library:CreateWindow(config)
                     Size = UDim2.new(1, -2, 1, -2),
                     BackgroundColor3 = Theme.Default.SecondaryColor,
                     BorderSizePixel = 0
-                }, {
-                    Utils:Create("TextLabel", {
-                        Text = " " .. label .. " ",
-                        Position = UDim2.new(0, 10, 0, -8),
-                        Size = UDim2.new(0, 0, 0, 16),
-                        BackgroundColor3 = Theme.Default.SecondaryColor,
-                        TextColor3 = Theme.Default.TextColor,
-                        Font = Theme.Default.Font,
-                        TextSize = Theme.Default.FontSize,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                        AutomaticSize = Enum.AutomaticSize.X,
-                        BorderSizePixel = 0
-                    }),
-                    Utils:Create("UIListLayout", {
-                        Padding = UDim.new(0, 6),
-                        HorizontalAlignment = Enum.HorizontalAlignment.Center,
-                        SortOrder = Enum.SortOrder.LayoutOrder
-                    }),
-                    Utils:Create("UIPadding", {PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 6)})
+                })
+
+                local lightColor = Color3.fromRGB(255, 250, 250):Lerp(Theme.Default.AccentColor, 0.2)
+                
+                local TitleLabel = Utils:Create("TextLabel", {
+                    Parent = GroupBoxHolder,
+                    Text = " " .. label .. " ",
+                    Position = UDim2.new(0, 10, 0, -8),
+                    Size = UDim2.new(0, 0, 0, 16),
+                    BackgroundColor3 = Theme.Default.SecondaryColor,
+                    TextColor3 = lightColor,
+                    Font = Theme.Default.Font,
+                    TextSize = Theme.Default.FontSize,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    AutomaticSize = Enum.AutomaticSize.X,
+                    BorderSizePixel = 0,
+                    ZIndex = 6,
+                    RichText = true
+                })
+
+                local InnerGlow = Utils:Create("UIStroke", {
+                    Parent = TitleLabel,
+                    Color = Theme.Default.AccentColor,
+                    Thickness = 1.0,
+                    Transparency = 0
+                })
+
+                local OuterGlowLabel = Utils:Create("TextLabel", {
+                    Parent = TitleLabel,
+                    Text = TitleLabel.Text,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    Position = UDim2.new(0, 0, 0, 0),
+                    BackgroundTransparency = 1,
+                    TextColor3 = Theme.Default.AccentColor,
+                    Font = TitleLabel.Font,
+                    TextSize = TitleLabel.TextSize,
+                    TextXAlignment = TitleLabel.TextXAlignment,
+                    ZIndex = 5,
+                    RichText = true
+                })
+
+                local OuterGlowStroke = Utils:Create("UIStroke", {
+                    Parent = OuterGlowLabel,
+                    Color = Theme.Default.AccentColor,
+                    Thickness = 4.5,
+                    Transparency = 0.75
+                })
+
+                table.insert(Library.AccentUpdate, function(newColor)
+                    local newLight = Color3.fromRGB(255, 250, 250):Lerp(newColor, 0.2)
+                    TitleLabel.TextColor3 = newLight
+                    InnerGlow.Color = newColor
+                    OuterGlowLabel.TextColor3 = newColor
+                    OuterGlowStroke.Color = newColor
+                end)
+
+                Utils:Create("UIListLayout", {
+                    Parent = GroupBox,
+                    Padding = UDim.new(0, 6),
+                    HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                    SortOrder = Enum.SortOrder.LayoutOrder
+                })
+
+                Utils:Create("UIPadding", {
+                    Parent = GroupBox,
+                    PaddingTop = UDim.new(0, 10),
+                    PaddingBottom = UDim.new(0, 6)
                 })
 
                 GroupBox:FindFirstChild("UIListLayout"):GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -445,14 +493,14 @@ function Library:Notify(config)
     end)
 end
 
-local WatermarkGui = Utils:Create("ScreenGui", { Name = "UIcult_Watermark", Parent = game.CoreGui })
+local WatermarkGui = Utils:Create("ScreenGui", { Name = "UIcult_Watermark", Parent = game.CoreGui, Enabled = false })
 local WatermarkFrame = Utils:Create("Frame", {
     Parent = WatermarkGui,
     Size = UDim2.new(0, 240, 0, 24),
     Position = UDim2.new(0, 20, 0, 20),
     BackgroundColor3 = Theme.Default.DarkBorder,
     BorderSizePixel = 0,
-    Visible = false
+    Visible = true
 })
 
 local WAccent = Utils:Create("Frame", {
@@ -489,7 +537,7 @@ local WLabel = Utils:Create("TextLabel", {
 Utils:MakeDraggable(WMain, WatermarkFrame)
 
 function Library:SetWatermarkVisibility(bool)
-    WatermarkFrame.Visible = bool
+    WatermarkGui.Enabled = bool
 end
 
 task.spawn(function()
@@ -501,12 +549,9 @@ task.spawn(function()
             local fps = frames
             local stats = game:GetService("Stats")
             local ping = tonumber(string.format("%.0f", stats.Network.ServerStatsItem["Data Ping"]:GetValue()))
-            
             WLabel.Text = string.format("UIcult | %s | FPS: %d | Ping: %dms", os.date("%H:%M:%S"), fps, ping)
-            
             local textSize = game:GetService("TextService"):GetTextSize(WLabel.Text, WLabel.TextSize, WLabel.Font, Vector2.new(1000, 1000))
             WatermarkFrame.Size = UDim2.new(0, textSize.X + 24, 0, 22)
-            
             frames = 0
             lastUpdate = tick()
         end
