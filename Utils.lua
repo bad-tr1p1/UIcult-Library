@@ -27,7 +27,6 @@ function Utils:MakeDraggable(frame, parent)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             targetPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            -- Плавное перемещение через Tween для исключения дерганий
             Utils:Tween(parent, 0.08, {Position = targetPos})
         end
     end)

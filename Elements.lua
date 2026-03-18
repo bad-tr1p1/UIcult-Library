@@ -31,7 +31,7 @@ function Elements:Button(parent, text, callback)
         Text = text,
         TextColor3 = Theme.Default.TextColor,
         Font = Theme.Default.Font,
-        TextSize = 13, -- Ранее было 11
+        TextSize = 13,
         AutoButtonColor = false
     })
 
@@ -69,14 +69,27 @@ function Elements:Toggle(parent, text, default, callback)
         BorderSizePixel = 0
     })
 
-    local Main = Utils:Create("TextButton", {
+    local Main = Utils:Create("Frame", {
         Parent = IndicatorInner,
         Position = UDim2.new(0, 1, 0, 1),
         Size = UDim2.new(1, -2, 1, -2),
-        BackgroundColor3 = Toggled and (Theme.Default.AccentColor) or Theme.Default.SecondaryColor,
-        BorderSizePixel = 0,
-        Text = ""
+        BackgroundColor3 = Theme.Default.SecondaryColor,
+        BorderSizePixel = 0
     })
+
+    local AccentLayer = Utils:Create("Frame", {
+        Parent = Main,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Theme.Default.AccentColor,
+        BackgroundTransparency = Toggled and 0 or 1,
+        BorderSizePixel = 0
+    })
+
+    if Lib and Lib.AccentUpdate then
+        table.insert(Lib.AccentUpdate, function(newColor)
+            AccentLayer.BackgroundColor3 = newColor
+        end)
+    end
 
     local Label = Utils:Create("TextLabel", {
         Parent = ToggleFrame,
@@ -86,7 +99,7 @@ function Elements:Toggle(parent, text, default, callback)
         BackgroundTransparency = 1,
         TextColor3 = Toggled and Theme.Default.TextColor or Theme.Default.TextDark,
         Font = Theme.Default.Font,
-        TextSize = 13, -- Ранее было 11
+        TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left
     })
 
@@ -99,16 +112,21 @@ function Elements:Toggle(parent, text, default, callback)
 
     Btn.MouseButton1Click:Connect(function()
         Toggled = not Toggled
-        Main.BackgroundColor3 = Toggled and Theme.Default.AccentColor or Theme.Default.SecondaryColor
-        Label.TextColor3 = Toggled and Theme.Default.TextColor or Theme.Default.TextDark
+        local info = TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        game:GetService("TweenService"):Create(AccentLayer, info, {
+            BackgroundTransparency = Toggled and 0 or 1
+        }):Play()
+
+        game:GetService("TweenService"):Create(Label, info, {
+            TextColor3 = Toggled and Theme.Default.TextColor or Theme.Default.TextDark
+        }):Play()
+
         callback(Toggled)
     end)
 
-    if Lib and Lib.AccentUpdate then
-        table.insert(Lib.AccentUpdate, function(newColor)
-            if Toggled then Main.BackgroundColor3 = newColor end
-        end)
-    end
+    task.spawn(function()
+        callback(Toggled)
+    end)
 
     return ToggleFrame
 end
@@ -129,7 +147,7 @@ function Elements:Slider(parent, text, min, max, default, callback)
         BackgroundTransparency = 1,
         TextColor3 = Theme.Default.TextColor,
         Font = Theme.Default.Font,
-        TextSize = 13, -- Ранее было 11
+        TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left
     })
 
@@ -229,7 +247,7 @@ function Elements:Dropdown(parent, text, options, default, callback)
         BackgroundTransparency = 1,
         TextColor3 = Theme.Default.TextColor,
         Font = Theme.Default.Font,
-        TextSize = 13, -- Ранее было 11
+        TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left
     })
 
